@@ -1,0 +1,30 @@
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.local.properties
+
+# Java and Maven
+**/target/
+*.class
+*.log
+
+# Angular and Node.js
+**/node_modules/
+**/.angular/
+**/dist/
+**/coverage/
+
+# IDE configuration
+.vscode/
+.idea/
+*.iml
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak

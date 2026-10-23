@@ -1,0 +1,521 @@
+
+<div class="hotel-app">
+
+  <header class="site-header">
+
+    <div class="brand">
+      NORTHSTAR <span>HOTEL</span>
+    </div>
+
+    <div class="header-actions">
+
+      <nav>
+        <a href="#rooms">{{ t('rooms') }}</a>
+        <a href="#about">{{ t('about') }}</a>
+      </nav>
+
+      <div
+        class="language-switcher"
+        role="group"
+        [attr.aria-label]="t('language')"
+      >
+        <button
+          type="button"
+          [class.active]="language() === 'en'"
+          [attr.aria-pressed]="language() === 'en'"
+          (click)="setLanguage('en')"
+        >
+          English
+        </button>
+
+        <button
+          type="button"
+          [class.active]="language() === 'es'"
+          [attr.aria-pressed]="language() === 'es'"
+          (click)="setLanguage('es')"
+        >
+          Español
+        </button>
+      </div>
+
+      <div
+        class="currency-switcher"
+        role="group"
+        [attr.aria-label]="language() === 'es' ? 'Moneda' : 'Currency'"
+      >
+        <button
+          type="button"
+          [class.active]="displayCurrency() === 'USD'"
+          [attr.aria-pressed]="displayCurrency() === 'USD'"
+          (click)="setCurrency('USD')"
+        >
+          USD
+        </button>
+
+        <button
+          type="button"
+          [class.active]="displayCurrency() === 'EUR'"
+          [attr.aria-pressed]="displayCurrency() === 'EUR'"
+          (click)="setCurrency('EUR')"
+        >
+          EUR
+        </button>
+
+        <button
+          type="button"
+          [class.active]="displayCurrency() === 'GBP'"
+          [attr.aria-pressed]="displayCurrency() === 'GBP'"
+          (click)="setCurrency('GBP')"
+        >
+          GBP
+        </button>
+      </div>
+
+      <div class="time-zone-selector">
+
+        <label for="displayTimeZone">
+          {{ language() === 'es' ? 'Zona horaria' : 'Time Zone' }}
+        </label>
+
+        <select
+          id="displayTimeZone"
+          [ngModel]="selectedTimeZone()"
+          (ngModelChange)="setTimeZone($event)"
+        >
+          @for (zone of availableTimeZones; track zone.value) {
+            <option [ngValue]="zone.value">
+              {{ zone.label }}
+            </option>
+          }
+        </select>
+
+      </div>
+
+    </div>
+
+  </header>
+
+  <main>
+
+    <section class="hero">
+      <div class="hero-content">
+
+        <p class="eyebrow">{{ t('welcome') }}</p>
+
+        <h1>{{ t('heroTitle') }}</h1>
+
+        <p class="hero-description">
+          {{ t('heroDescription') }}
+        </p>
+
+      </div>
+    </section>
+
+    <section class="booking-section" id="rooms">
+
+      <div class="section-heading">
+        <p class="eyebrow">{{ t('planVisit') }}</p>
+        <h2>{{ t('findRoom') }}</h2>
+        <p>{{ t('selectDates') }}</p>
+      </div>
+
+      <form class="search-form" (ngSubmit)="searchRooms()">
+
+        <div class="form-group">
+          <label for="checkIn">{{ t('checkIn') }}</label>
+
+          <input
+            id="checkIn"
+            name="checkInDate"
+            type="date"
+            [(ngModel)]="checkInDate"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="checkOut">{{ t('checkOut') }}</label>
+
+          <input
+            id="checkOut"
+            name="checkOutDate"
+            type="date"
+            [(ngModel)]="checkOutDate"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="guests">{{ t('guests') }}</label>
+
+          <select
+            id="guests"
+            name="guestCount"
+            [(ngModel)]="guestCount"
+          >
+            <option [ngValue]="1">
+              1 {{ t('guest') }}
+            </option>
+
+            <option [ngValue]="2">
+              2 {{ t('guests') }}
+            </option>
+
+            <option [ngValue]="3">
+              3 {{ t('guests') }}
+            </option>
+
+            <option [ngValue]="4">
+              4 {{ t('guests') }}
+            </option>
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="searching() || booking()"
+        >
+          {{ searching() ? t('searching') : t('searchRooms') }}
+        </button>
+
+      </form>
+
+      @if (errorMessage()) {
+        <p class="form-error" role="alert">
+          {{ errorMessage() }}
+        </p>
+      }
+
+      @if (searching()) {
+        <p class="setup-note" aria-live="polite">
+          {{ t('searchingRooms') }}
+        </p>
+      }
+
+    </section>
+
+    <section class="rooms-section">
+
+      <div class="section-heading">
+        <p class="eyebrow">{{ t('accommodations') }}</p>
+
+        <h2>{{ t('availableRooms') }}</h2>
+
+        <p>{{ t('browseRooms') }}</p>
+      </div>
+
+      @if (confirmedReservation(); as reservation) {
+
+        <div class="booking-confirmation" role="status">
+
+          <p class="eyebrow">
+            {{ t('reservationConfirmed') }}
+          </p>
+
+          <h3>{{ t('bookingConfirmed') }}</h3>
+
+          <p>
+            {{ t('confirmationNumber') }}:
+            <strong>#{{ reservation.id }}</strong>
+          </p>
+
+          <p>
+            {{ t('checkIn') }}:
+            {{ reservation.checkInDate }}
+          </p>
+
+          <p>
+            {{ t('checkOut') }}:
+            {{ reservation.checkOutDate }}
+          </p>
+
+          <p>
+            {{ t('total') }}:
+            <strong>
+              {{
+                convertedPrice(reservation.totalPrice)
+                | currency:displayCurrency():'symbol':'1.2-2'
+              }}
+            </strong>
+          </p>
+
+          @if (isEstimatedPrice()) {
+
+            <p class="currency-disclaimer">
+              {{
+                language() === 'es'
+                  ? 'Conversión estimada. Total registrado en USD:'
+                  : 'Estimated conversion. Total recorded in USD:'
+              }}
+
+              <strong>
+                {{
+                  reservation.totalPrice
+                  | currency:'USD':'symbol':'1.2-2'
+                }}
+              </strong>
+            </p>
+
+          }
+
+          <p>
+            {{ t('status') }}:
+            {{ reservation.status }}
+          </p>
+
+          <p>
+            {{
+              language() === 'es'
+                ? 'Reserva creada'
+                : 'Reservation created'
+            }}:
+
+            <strong>
+              {{ formatCreatedAt(reservation.createdAt) }}
+            </strong>
+          </p>
+
+        </div>
+
+      }
+
+      @if (hasSearched() && rooms().length > 0) {
+
+        <div class="room-grid">
+
+          @for (room of rooms(); track room.id) {
+
+            <article class="room-card">
+
+              <div class="room-card-content">
+
+                <p class="eyebrow">
+                  {{ t('room') }} {{ room.roomNumber }}
+                </p>
+
+                <h3>{{ room.roomType }}</h3>
+
+                <p class="room-detail">
+                  {{ t('upTo') }} {{ room.capacity }}
+                  {{
+                    room.capacity === 1
+                      ? t('guest')
+                      : t('guests')
+                  }}
+                </p>
+
+                <p class="room-price">
+                  {{
+                    convertedPrice(room.nightlyRate)
+                    | currency:displayCurrency():'symbol':'1.2-2'
+                  }}
+
+                  <span>
+                    / {{ t('perNight') }}
+                  </span>
+                </p>
+
+                @if (isEstimatedPrice()) {
+
+                  <p class="currency-disclaimer">
+                    {{
+                      language() === 'es'
+                        ? 'Precio estimado. La tarifa original está en USD.'
+                        : 'Estimated price. Original rate is in USD.'
+                    }}
+                  </p>
+
+                }
+
+                <button
+                  type="button"
+                  class="book-room-button"
+                  [disabled]="booking()"
+                  (click)="selectRoom(room)"
+                >
+                  {{ t('bookRoom') }}
+                </button>
+
+              </div>
+
+            </article>
+
+          }
+
+        </div>
+
+      } @else if (hasSearched() && !confirmedReservation()) {
+
+        <div class="empty-state">
+
+          <h3>{{ t('noRooms') }}</h3>
+
+          <p>{{ t('tryDifferent') }}</p>
+
+        </div>
+
+      } @else if (!hasSearched()) {
+
+        <div class="empty-state">
+
+          <h3>{{ t('perfectRoom') }}</h3>
+
+          <p>{{ t('selectDatesPrompt') }}</p>
+
+        </div>
+
+      }
+
+      @if (selectedRoom(); as room) {
+
+        <section class="booking-form-section">
+
+          <div class="section-heading">
+
+            <p class="eyebrow">
+              {{ t('completeReservation') }}
+            </p>
+
+            <h2>
+              {{ t('bookRoom') }} {{ room.roomNumber }}
+            </h2>
+
+            <p>
+              {{ room.roomType }} —
+              {{
+                convertedPrice(room.nightlyRate)
+                | currency:displayCurrency():'symbol':'1.2-2'
+              }}
+              {{ t('perNight') }}
+            </p>
+
+            @if (isEstimatedPrice()) {
+
+              <p class="currency-disclaimer">
+                {{
+                  language() === 'es'
+                    ? 'Conversión estimada. Las reservas se registran en USD.'
+                    : 'Estimated conversion. Reservations are recorded in USD.'
+                }}
+              </p>
+
+            }
+
+          </div>
+
+          <form
+            class="guest-booking-form"
+            (ngSubmit)="bookRoom()"
+          >
+
+            <div class="form-group">
+
+              <label for="bookingName">
+                {{ t('fullName') }}
+              </label>
+
+              <input
+                id="bookingName"
+                name="bookingFullName"
+                type="text"
+                [(ngModel)]="bookingFullName"
+                maxlength="120"
+                autocomplete="name"
+                required
+              >
+
+            </div>
+
+            <div class="form-group">
+
+              <label for="bookingEmail">
+                {{ t('emailAddress') }}
+              </label>
+
+              <input
+                id="bookingEmail"
+                name="bookingEmail"
+                type="email"
+                [(ngModel)]="bookingEmail"
+                maxlength="254"
+                autocomplete="email"
+                required
+              >
+
+            </div>
+
+            <div class="form-group">
+
+              <label for="bookingPhone">
+                {{ t('phoneOptional') }}
+              </label>
+
+              <input
+                id="bookingPhone"
+                name="bookingPhone"
+                type="tel"
+                [(ngModel)]="bookingPhone"
+                maxlength="30"
+                autocomplete="tel"
+              >
+
+            </div>
+
+            @if (bookingError()) {
+
+              <p class="form-error" role="alert">
+                {{ bookingError() }}
+              </p>
+
+            }
+
+            <div class="booking-actions">
+
+              <button
+                type="submit"
+                class="confirm-booking-button"
+                [disabled]="booking()"
+              >
+                {{
+                  booking()
+                    ? t('processing')
+                    : t('confirmBooking')
+                }}
+              </button>
+
+              <button
+                type="button"
+                class="cancel-booking-button"
+                [disabled]="booking()"
+                (click)="cancelSelection()"
+              >
+                {{ t('cancel') }}
+              </button>
+
+            </div>
+
+          </form>
+
+        </section>
+
+      }
+
+    </section>
+
+    <section class="about-section" id="about">
+
+      <h2>{{ t('aboutTitle') }}</h2>
+
+      <p>{{ t('aboutDescription') }}</p>
+
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>{{ t('footer') }}</p>
+  </footer>
+
+</div>
+
+<router-outlet></router-outlet>
